@@ -1,0 +1,62 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────
+   Design Tokens
+   ─────────────────────────────────────────────────────────────── */
+:root {
+  --font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+}
+
+@theme inline {
+  --font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Base Styles
+   ─────────────────────────────────────────────────────────────── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Scrollbar
+   ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Selection
+   ─────────────────────────────────────────────────────────────── */
+::selection {
+  background: #facc15;
+  color: #111827;
+}
+
+/* ───────────────────────────────────────────────────────────────
+   Focus
+   ─────────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid #facc15;
+  outline-offset: 2px;
+}
