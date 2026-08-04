@@ -1,0 +1,21 @@
+version: '3.8'
+
+# Development-only override for docker-compose.yml
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  db:
+    ports:
+      - "3306:3306"
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - ./uploads:/app/uploads
+    command: npm run start:dev
+    environment:
+      DATABASE_URL: "mysql://root:password@db:3306/personal_profile"

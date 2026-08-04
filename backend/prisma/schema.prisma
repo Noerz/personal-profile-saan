@@ -1,0 +1,312 @@
+// ─────────────────────────────────────────────────────────────────────────────
+// Prisma Schema — Personal Profile Backend
+// ─────────────────────────────────────────────────────────────────────────────
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  EDITOR
+}
+
+enum ArticleStatus {
+  DRAFT
+  PUBLISHED
+  SCHEDULED
+}
+
+enum ProgramStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+enum AspirationStatus {
+  PENDING
+  READ
+  REPLIED
+  ARCHIVED
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ADMIN USERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Admin {
+  id        String    @id @default(uuid())
+  name      String    @db.VarChar(255)
+  email     String    @unique @db.VarChar(255)
+  password  String    @db.VarChar(255)
+  role      Role      @default(ADMIN)
+  avatar    String?   @db.VarChar(500)
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  // Relations
+  articles           Article[]
+  refreshTokens      RefreshToken[]
+  activityLogs       ActivityLog[]
+  repliedAspirations Aspiration[]   @relation("RepliedBy")
+
+  @@index([email])
+  @@index([role])
+  @@index([isActive])
+  @@index([deletedAt])
+  @@map("admins")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  adminId   String
+  tokenHash String   @db.VarChar(500)
+  isRevoked Boolean  @default(false)
+  expiresAt DateTime
+  ipAddress String?  @db.VarChar(100)
+  userAgent String?  @db.VarChar(500)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  admin Admin @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+  @@index([isRevoked])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLIC PROFILE
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Profile {
+  id        String   @id @default(uuid())
+  fullName  String   @db.VarChar(255)
+  headline  String?  @db.VarChar(500)
+  bio       String?  @db.Text
+  avatar    String?  @db.VarChar(500)
+  phone     String?  @db.VarChar(50)
+  email     String?  @db.VarChar(255)
+  address   String?  @db.VarChar(500)
+  linkedin  String?  @db.VarChar(500)
+  github    String?  @db.VarChar(500)
+  twitter   String?  @db.VarChar(500)
+  instagram String?  @db.VarChar(500)
+  website   String?  @db.VarChar(500)
+  resumeUrl String?  @db.VarChar(500)
+  skills    Json?
+  // Example: ["NestJS", "React", "TypeScript"]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("profiles")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ARTICLES & CATEGORIES
+// ─────────────────────────────────────────────────────────────────────────────
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique @db.VarChar(255)
+  slug        String    @unique @db.VarChar(255)
+  description String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  articles Article[]
+
+  @@index([slug])
+  @@map("categories")
+}
+
+model Article {
+  id          String        @id @default(uuid())
+  title       String        @db.VarChar(500)
+  slug        String        @unique @db.VarChar(500)
+  content     String        @db.LongText
+  excerpt     String?       @db.Text
+  thumbnail   String?       @db.VarChar(500)
+  status      ArticleStatus @default(DRAFT)
+  isFeatured  Boolean       @default(false)
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  viewCount   Int           @default(0)
+  readingTime Int           @default(0)
+  authorId    String
+  categoryId  String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  author      Admin         @relation(fields: [authorId], references: [id])
+  category    Category?     @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  seoMetadata SeoMetadata?
+
+  @@index([slug])
+  @@index([status])
+  @@index([isFeatured])
+  @@index([publishedAt])
+  @@index([authorId])
+  @@index([categoryId])
+  @@index([deletedAt])
+  @@map("articles")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FEATURED PROGRAMS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model FeaturedProgram {
+  id          String        @id @default(uuid())
+  title       String        @db.VarChar(500)
+  slug        String        @unique @db.VarChar(500)
+  description String?       @db.Text
+  content     String?       @db.LongText
+  thumbnail   String?       @db.VarChar(500)
+  status      ProgramStatus @default(DRAFT)
+  isHighlight Boolean       @default(false)
+  orderIndex  Int           @default(0)
+  startDate   DateTime?
+  endDate     DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  deletedAt   DateTime?
+
+  // Relations
+  galleries   ProgramGallery[]
+  seoMetadata SeoMetadata?
+
+  @@index([slug])
+  @@index([status])
+  @@index([orderIndex])
+  @@index([isHighlight])
+  @@index([deletedAt])
+  @@map("featured_programs")
+}
+
+model ProgramGallery {
+  id         String   @id @default(uuid())
+  programId  String
+  imageUrl   String   @db.VarChar(500)
+  caption    String?  @db.VarChar(500)
+  orderIndex Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  // Relations
+  program FeaturedProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@index([orderIndex])
+  @@map("program_galleries")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ASPIRATIONS
+// ─────────────────────────────────────────────────────────────────────────────
+
+model AspirationCategory {
+  id        String   @id @default(uuid())
+  name      String   @unique @db.VarChar(255)
+  slug      String   @unique @db.VarChar(255)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  aspirations Aspiration[]
+
+  @@index([slug])
+  @@map("aspiration_categories")
+}
+
+model Aspiration {
+  id          String           @id @default(uuid())
+  name        String           @db.VarChar(255)
+  email       String           @db.VarChar(255)
+  phone       String?          @db.VarChar(50)
+  title       String           @db.VarChar(500)
+  content     String           @db.Text
+  categoryId  String?
+  status      AspirationStatus @default(PENDING)
+  adminReply  String?          @db.Text
+  repliedAt   DateTime?
+  repliedById String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  // Relations
+  category  AspirationCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  repliedBy Admin?              @relation("RepliedBy", fields: [repliedById], references: [id], onDelete: SetNull)
+
+  @@index([status])
+  @@index([email])
+  @@index([categoryId])
+  @@index([createdAt])
+  @@map("aspirations")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SEO METADATA (Polymorphic — Article or Program)
+// ─────────────────────────────────────────────────────────────────────────────
+
+model SeoMetadata {
+  id        String   @id @default(uuid())
+  articleId String?  @unique
+  programId String?  @unique
+  metaTitle String?  @db.VarChar(200)
+  metaDesc  String?  @db.VarChar(500)
+  keywords  String?  @db.VarChar(500)
+  ogImage   String?  @db.VarChar(500)
+  canonical String?  @db.VarChar(500)
+  noIndex   Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  article Article?        @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  program FeaturedProgram? @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@map("seo_metadata")
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ACTIVITY LOG
+// ─────────────────────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  adminId     String?
+  action      String   @db.VarChar(100)
+  entity      String?  @db.VarChar(100)
+  entityId    String?  @db.VarChar(100)
+  description String?  @db.Text
+  metadata    Json?
+  ipAddress   String?  @db.VarChar(100)
+  userAgent   String?  @db.VarChar(500)
+  createdAt   DateTime @default(now())
+
+  // Relations
+  admin Admin? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([adminId])
+  @@index([action])
+  @@index([entity])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
